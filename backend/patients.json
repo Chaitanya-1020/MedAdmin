@@ -1,0 +1,22 @@
+[
+  {
+    "status": "Admitted",
+    "gender": "Male",
+    "ward": "Ward A",
+    "name": "sghg",
+    "bed": "w2",
+    "id": "P-1771226453223",
+    "uniqueCode": "MR-2026-002",
+    "admittedDate": "2026-02-16"
+  },
+  {
+    "status": "Admitted",
+    "gender": "Male",
+    "ward": "Ward A",
+    "name": "eee",
+    "bed": "4",
+    "id": "P-1771343878631",
+    "uniqueCode": "MR-2026-003",
+    "admittedDate": "2026-02-17"
+  }
+]

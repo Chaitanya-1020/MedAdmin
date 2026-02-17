@@ -1,0 +1,30 @@
+[
+  {
+    "id": "N001",
+    "name": "hostel",
+    "email": "hostelbtech@gmail.com",
+    "password": "$2a$10$oYxR8YNBO8JLDRNnky2bc.OyFQodmzq0Dwx8C7u/azG.DKDAzhCjq",
+    "role": "nurse"
+  },
+  {
+    "id": "N002",
+    "name": "hostel",
+    "email": "hostelbteche@gmail.com",
+    "password": "$2a$10$sJKeUu9egKOf/eXa/.4MzOFgzCYpssm2E4a4ktP/Vwzb0Wufupdwe",
+    "role": "nurse"
+  },
+  {
+    "id": "N003",
+    "name": "hostel",
+    "email": "hostelbtec@gmail.com",
+    "password": "$2a$10$68iN5Qsfu8mBSD2RwnFm3efmNt3/c5s.SR8f0dQqj25NZNhm3kqpC",
+    "role": "nurse"
+  },
+  {
+    "id": "N005",
+    "name": "hostel",
+    "email": "hostelbtechf@gmail.com",
+    "password": "$2a$10$k0IuQZVGSTJ1FHt7qVIe2.zrxIDCAhfjCEhvAuQOqVFl7pKhjpqrG",
+    "role": "doctor"
+  }
+]

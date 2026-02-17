@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patients - MedAdmin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; display: flex; min-height: 100vh; }
+        
+        /* Sidebar Styles */
+        .sidebar { width: 260px; border-right: 1px solid rgba(255,255,255,0.05); padding: 30px; display: flex; flex-direction: column; gap: 10px; position: fixed; height: 100vh; }
+        .sidebar h2 { color: #3b82f6; margin-bottom: 30px; }
+        .sidebar a { padding: 12px; color: #94a3b8; text-decoration: none; border-radius: 10px; transition: 0.3s; }
+        .sidebar a.active { background: #1d4ed8; color: white; }
+        .sidebar a:hover:not(.active) { background: rgba(255,255,255,0.05); color: white; }
+
+        /* Main Content Styles */
+        .main-content { flex: 1; margin-left: 260px; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .admit-btn { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        
+        /* Table Styles */
+        .table-container { background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; color: #cbd5e1; }
+        th { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .status-badge { background: rgba(34, 197, 94, 0.1); color: #22c55e; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+        /* Modal Styles for Editing */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
+        .modal-content { background: #1e293b; margin: 10% auto; padding: 30px; border-radius: 20px; width: 400px; border: 1px solid rgba(255,255,255,0.1); }
+        .modal input { width: 100%; padding: 12px; margin: 10px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; }
+        .save-btn { background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <h2>MedAdmin</h2>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/patients" class="active">👥 Patients</a>
+        <a href="#">💊 Prescriptions</a>
+        <a href="#">📋 Reports</a>
+    </nav>
+
+    <main class="main-content">
+        <div class="header">
+            <div>
+                <h1>Patients</h1>
+                <p style="color: #64748b; margin-top: 5px;">Manage admitted patients and medical records</p>
+            </div>
+            <a href="/admit-patient-form" class="admit-btn">+ Admit Patient</a>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient Name</th>
+                        <th>MRN</th>
+                        <th>Bed / Ward</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (patients && patients.length > 0) { %>
+                        <% patients.forEach(patient => { %>
+                            <tr>
+                                <td style="color: white; font-weight: 500;"><%= patient.name %></td>
+                                <td><code><%= patient.mrn %></code></td>
+                                <td><%= patient.bed %> (<%= patient.ward %>)</td>
+                                <td><span class="status-badge"><%= patient.status %></span></td>
+                                <td>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button style="background:none; border:none; cursor:pointer;" onclick="openEditModal('<%= patient.id %>', '<%= patient.name %>', '<%= patient.bed %>', '<%= patient.ward %>')">✏️</button>
+
+                                        <form action="/delete-patient/<%= patient.id %>" method="POST" onsubmit="return confirm('Delete record for <%= patient.name %>?')">
+                                            <button type="submit" style="background:none; border:none; color:#ef4444; cursor:pointer;">🗑️</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr><td colspan="5" style="padding: 60px; text-align: center;">No patients admitted.</td></tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Edit Patient Details</h3>
+            <form id="editForm" method="POST">
+                <label style="font-size: 12px; color: #94a3b8;">Patient Name</label>
+                <input type="text" name="name" id="editName" required>
+                
+                <label style="font-size: 12px; color: #94a3b8;">Bed Number</label>
+                <input type="text" name="bed" id="editBed" required>
+                
+                <label style="font-size: 12px; color: #94a3b8;">Ward</label>
+                <input type="text" name="ward" id="editWard" required>
+
+                <input type="hidden" name="status" value="Admitted">
+                <button type="submit" class="save-btn">Save Changes</button>
+                <button type="button" onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-top:10px; cursor:pointer;">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditModal(id, name, bed, ward) {
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editForm').action = '/update-patient/' + id;
+            document.getElementById('editName').value = name;
+            document.getElementById('editBed').value = bed;
+            document.getElementById('editWard').value = ward;
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Close modal if user clicks outside of it
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('editModal')) closeModal();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admit Patient - MedAdmin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; padding: 50px; }
+        .form-card { background: rgba(255,255,255,0.03); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); max-width: 500px; margin: 0 auto; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 15px 0; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 10px; }
+        .submit-btn { background: #3b82f6; color: white; width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="form-card">
+        <h2 style="margin-bottom: 20px;">Admit New Patient</h2>
+        <form action="/admit-patient" method="POST">
+            <label>Patient Name</label>
+            <input type="text" name="name" required placeholder="Full Name">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Bed Number</label>
+                    <input type="text" name="bed" required placeholder="e.g. B-102">
+                </div>
+                <div>
+                    <label>Ward</label>
+                    <input type="text" name="ward" required placeholder="e.g. General">
+                </div>
+            </div>
+
+            <label>Condition</label>
+            <select name="condition">
+                <option value="Stable">Stable</option>
+                <option value="Critical">Critical</option>
+                <option value="Observation">Observation</option>
+            </select>
+
+            <button type="submit" class="submit-btn">Admit Patient</button>
+            <a href="/patients" style="display:block; text-align:center; margin-top:15px; color:#94a3b8; text-decoration:none;">Cancel</a>
+        </form>
+    </div>
+
+</body>
+</html>

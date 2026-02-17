@@ -1,21 +1,27 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { usePatients } from "../context/PatientContext";
 import { StatusBadge, Modal, SectionHeader, TableSearch, EmptyState } from "../components/UI";
 import Icon from "../components/Icon";
 
-export default function PatientsPage({ patients, setPatients }) {
+export default function PatientsPage() {
   const { user } = useAuth();
-  const [search, setSearch]     = useState("");
+  
+  // 1. Pull all 4 required actions from context
+  const { patients, addPatient, updatePatient, deletePatient } = usePatients(); 
+  
+  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [form, setForm]         = useState({});
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const canEdit = user.role === "doctor" || user.role === "admin";
 
   const filtered = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.uniqueCode.toLowerCase().includes(search.toLowerCase()) ||
-    p.bed.toLowerCase().includes(search.toLowerCase()) ||
+    (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (p.uniqueCode || "").toLowerCase().includes(search.toLowerCase()) ||
+    (p.bed || "").toLowerCase().includes(search.toLowerCase()) ||
     (p.condition || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -23,36 +29,64 @@ export default function PatientsPage({ patients, setPatients }) {
 
   const openAdd = () => {
     setEditTarget(null);
-    setForm({ status:"Admitted", gender:"Male", ward:"Ward A" });
+    setForm({ status: "Admitted", gender: "Male", ward: "Ward A" });
     setShowModal(true);
   };
+
   const openEdit = (p) => {
     setEditTarget(p);
     setForm({ ...p });
     setShowModal(true);
   };
-  const handleSave = () => {
-    if (editTarget) {
-      setPatients(prev => prev.map(p => p.id === editTarget.id ? { ...p, ...form } : p));
-    } else {
-      const newP = {
-        ...form,
-        id: `P${String(Date.now()).slice(-4)}`,
-        uniqueCode: `MR-2025-${String(patients.length + 1).padStart(3, "0")}`,
-        admissionDate: new Date().toISOString().slice(0, 10),
-        doctorId: user.id,
-        dischargeDate: null,
-      };
-      setPatients(prev => [...prev, newP]);
+
+  // 2. Updated Save handles both NEW patients and UPDATES to existing ones
+  const handleSave = async () => {
+    if (!form.name || !form.bed) {
+      alert("Please fill in Name and Bed Number");
+      return;
     }
-    setShowModal(false);
+
+    setLoading(true); 
+    try {
+      if (editTarget) {
+        // CALL UPDATE: Sends a PUT request to the server
+        const res = await updatePatient(editTarget.id, form);
+        if (res.success) setShowModal(false);
+      } else {
+        // CALL ADD: Sends a POST request to the server
+        const res = await addPatient({
+          ...form,
+          doctorId: user.id
+        }); 
+        if (res.success) {
+          setShowModal(false);
+          setForm({}); 
+        }
+      }
+    } catch (err) {
+      alert("Action failed. Check if server is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Handle Delete logic
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this patient permanently?")) {
+      try {
+        const res = await deletePatient(id);
+        if (!res.success) alert("Failed to delete patient.");
+      } catch (err) {
+        alert("Delete error. Check server.");
+      }
+    }
   };
 
   const modalFooter = (
     <>
-      <button className="btn" onClick={() => setShowModal(false)}>Cancel</button>
-      <button className="btn accent" onClick={handleSave}>
-        {editTarget ? "Save Changes" : "Admit Patient"}
+      <button className="btn" onClick={() => setShowModal(false)} disabled={loading}>Cancel</button>
+      <button className="btn accent" onClick={handleSave} disabled={loading}>
+        {loading ? "Saving..." : editTarget ? "Save Changes" : "Admit Patient"}
       </button>
     </>
   );
@@ -84,14 +118,14 @@ export default function PatientsPage({ patients, setPatients }) {
             {filtered.map(p => (
               <tr key={p.id}>
                 <td>
-                  <div style={{ fontWeight:600 }}>{p.name}</div>
-                  <div style={{ fontSize:11.5, color:"var(--text2)" }}>{p.age}y · {p.gender}</div>
+                  <div style={{ fontWeight: 600 }}>{p.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text2)" }}>{p.age}y · {p.gender}</div>
                 </td>
                 <td><span className="pill">{p.uniqueCode}</span></td>
-                <td><span style={{ fontFamily:"var(--font-mono)", fontSize:12.5, color:"var(--amber)" }}>{p.bed}</span></td>
-                <td style={{ color:"var(--text2)", fontSize:12.5 }}>{p.ward}</td>
-                <td style={{ fontFamily:"var(--font-mono)", fontSize:11.5, color:"var(--text2)" }}>{p.admissionDate}</td>
-                <td style={{ fontSize:12.5 }}>{p.condition}</td>
+                <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--amber)" }}>{p.bed}</span></td>
+                <td style={{ color: "var(--text2)", fontSize: 12.5 }}>{p.ward}</td>
+                <td style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text2)" }}>{p.admittedDate || p.admissionDate}</td>
+                <td style={{ fontSize: 12.5 }}>{p.condition}</td>
                 <td><StatusBadge status={p.status} /></td>
                 {canEdit && (
                   <td>
@@ -99,8 +133,8 @@ export default function PatientsPage({ patients, setPatients }) {
                       <div className="icon-btn" onClick={() => openEdit(p)} title="Edit patient">
                         <Icon name="edit" size={13} />
                       </div>
-                      <div className="icon-btn danger" title="Discharge patient"
-                        onClick={() => setPatients(prev => prev.map(pt => pt.id === p.id ? { ...pt, status:"Discharged", dischargeDate:new Date().toISOString().slice(0,10) } : pt))}>
+                      {/* 4. Connected the Delete function to the trash icon */}
+                      <div className="icon-btn danger" title="Delete patient" onClick={() => handleDelete(p.id)}>
                         <Icon name="trash" size={13} />
                       </div>
                     </div>
@@ -118,57 +152,43 @@ export default function PatientsPage({ patients, setPatients }) {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Full Name *</label>
-              <input className="form-input" value={form.name||""} onChange={e => set("name", e.target.value)} placeholder="Patient full name" />
+              <input className="form-input" value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Patient full name" />
             </div>
             <div className="form-group">
               <label className="form-label">Age *</label>
-              <input className="form-input" type="number" value={form.age||""} onChange={e => set("age", e.target.value)} placeholder="Years" />
+              <input className="form-input" type="number" value={form.age || ""} onChange={e => set("age", e.target.value)} placeholder="Years" />
             </div>
           </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Gender</label>
-              <select className="form-select" value={form.gender||"Male"} onChange={e => set("gender", e.target.value)}>
+              <select className="form-select" value={form.gender || "Male"} onChange={e => set("gender", e.target.value)}>
                 <option>Male</option><option>Female</option><option>Other</option>
               </select>
             </div>
             <div className="form-group">
               <label className="form-label">Bed Number *</label>
-              <input className="form-input" value={form.bed||""} onChange={e => set("bed", e.target.value)} placeholder="e.g. A-101" />
+              <input className="form-input" value={form.bed || ""} onChange={e => set("bed", e.target.value)} placeholder="e.g. A-101" />
             </div>
           </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Ward</label>
-              <select className="form-select" value={form.ward||"Ward A"} onChange={e => set("ward", e.target.value)}>
+              <select className="form-select" value={form.ward || "Ward A"} onChange={e => set("ward", e.target.value)}>
                 <option>Ward A</option><option>Ward B</option><option>ICU</option><option>Cardiology</option><option>Neurology</option>
               </select>
             </div>
             <div className="form-group">
               <label className="form-label">Condition / Diagnosis</label>
-              <input className="form-input" value={form.condition||""} onChange={e => set("condition", e.target.value)} placeholder="Primary diagnosis" />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Contact Number</label>
-              <input className="form-input" value={form.contact||""} onChange={e => set("contact", e.target.value)} placeholder="Patient contact" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Emergency Contact</label>
-              <input className="form-input" value={form.emergencyContact||""} onChange={e => set("emergencyContact", e.target.value)} placeholder="Emergency contact" />
+              <input className="form-input" value={form.condition || ""} onChange={e => set("condition", e.target.value)} placeholder="Primary diagnosis" />
             </div>
           </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Status</label>
-              <select className="form-select" value={form.status||"Admitted"} onChange={e => set("status", e.target.value)}>
+              <select className="form-select" value={form.status || "Admitted"} onChange={e => set("status", e.target.value)}>
                 <option>Admitted</option><option>Discharged</option>
               </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Discharge Date</label>
-              <input className="form-input" type="date" value={form.dischargeDate||""} onChange={e => set("dischargeDate", e.target.value)} />
             </div>
           </div>
         </Modal>

@@ -1,38 +1,35 @@
 import { createContext, useContext, useState } from "react";
-import { MOCK_USERS } from "../data/mockData";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Load from sessionStorage so refresh keeps user logged in within tab
   const [user, setUser] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem("hms_user")) || null; }
     catch { return null; }
   });
-  const [registeredUsers, setRegisteredUsers] = useState([...MOCK_USERS]);
 
-  const login = (email, password, role) => {
-    const found = registeredUsers.find(
-      u => u.email === email && u.password === password && u.role === role && u.status === "active"
-    );
-    if (!found) return { success: false, message: "Invalid credentials or account inactive." };
-    sessionStorage.setItem("hms_user", JSON.stringify(found));
-    setUser(found);
-    return { success: true };
+  const signup = async (userData) => {
+    const response = await fetch('http://localhost:5000/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Signup failed');
+    return data; // Returns { success: true }
   };
 
-  const signup = (data) => {
-    const exists = registeredUsers.find(u => u.email === data.email);
-    if (exists) return { success: false, message: "Email already registered." };
-    const newUser = {
-      ...data,
-      id: `USR${Date.now()}`,
-      status: data.role === "admin" ? "active" : "active", // in prod, admin approves
-      createdAt: new Date().toISOString(),
-    };
-    setRegisteredUsers(prev => [...prev, newUser]);
-    sessionStorage.setItem("hms_user", JSON.stringify(newUser));
-    setUser(newUser);
+  const login = async (email, password, role) => {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role }),
+    });
+    const data = await response.json();
+    if (!response.ok) return { success: false, message: data.error };
+    
+    sessionStorage.setItem("hms_user", JSON.stringify(data.user));
+    setUser(data.user);
     return { success: true };
   };
 
@@ -42,7 +39,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, registeredUsers, setRegisteredUsers }}>
+    <AuthContext.Provider value={{ user, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
