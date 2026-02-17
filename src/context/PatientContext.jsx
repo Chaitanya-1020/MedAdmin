@@ -71,6 +71,9 @@ export function PatientProvider({ children }) {
     }
   };
 
+
+
+
   return (
     // Make sure all 4 functions are included in the value prop
     <PatientContext.Provider value={{ patients, addPatient, updatePatient, deletePatient, refreshPatients }}>
@@ -80,3 +83,5 @@ export function PatientProvider({ children }) {
 }
 
 export const usePatients = () => useContext(PatientContext);
+
+
