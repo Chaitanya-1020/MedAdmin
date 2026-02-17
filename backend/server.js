@@ -120,5 +120,5 @@ app.post('/delete-patient/:id', (req, res) => {
 });
 
 app.listen(5000, () => {
-    console.log("MEDADMIN BACKEND RUNNING ON PORT 5000");
+    console.log("  MEDADMIN BACKEND RUNNING ON PORT 5000  ");
 });
